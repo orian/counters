@@ -1,7 +1,6 @@
 // Package counters provides a simple counter, max and min functionalities.
 // All counters are kept in CounterBox.
 // Library is thread safe.
-
 package counters
 
 import (

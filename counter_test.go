@@ -51,3 +51,66 @@ func TestMax(t *testing.T) {
 		t.Errorf("Max, want: 10, got %d", v)
 	}
 }
+
+func BenchmarkCounters(b *testing.B) {
+	b.StopTimer()
+	e := make(chan bool)
+	c := NewCounterBox()
+	f := func(b *testing.B, c *CounterBox, e chan bool) {
+		for i := 0; i < b.N; i++ {
+			c.GetCounter("abc123").IncrementBy(5)
+			c.GetCounter("def456").IncrementBy(5)
+			c.GetCounter("ghi789").IncrementBy(5)
+			c.GetCounter("abc123").IncrementBy(5)
+			c.GetCounter("def456").IncrementBy(5)
+			c.GetCounter("ghi789").IncrementBy(5)
+		}
+		e <- true
+	}
+	b.StartTimer()
+	go f(b, c, e)
+	go f(b, c, e)
+	go f(b, c, e)
+	go f(b, c, e)
+	go f(b, c, e)
+	go f(b, c, e)
+
+	<-e
+	<-e
+	<-e
+	<-e
+	<-e
+}
+
+func BenchmarkCountersCached(b *testing.B) {
+	b.StopTimer()
+	e := make(chan bool)
+	c := NewCounterBox()
+	f := func(b *testing.B, c *CounterBox, e chan bool) {
+		x := c.GetCounter("abc123")
+		y := c.GetCounter("def456")
+		z := c.GetCounter("ghi789")
+		for i := 0; i < b.N; i++ {
+			x.IncrementBy(5)
+			y.IncrementBy(5)
+			z.IncrementBy(5)
+			x.IncrementBy(5)
+			y.IncrementBy(5)
+			z.IncrementBy(5)
+		}
+		e <- true
+	}
+	b.StartTimer()
+	go f(b, c, e)
+	go f(b, c, e)
+	go f(b, c, e)
+	go f(b, c, e)
+	go f(b, c, e)
+	go f(b, c, e)
+
+	<-e
+	<-e
+	<-e
+	<-e
+	<-e
+}
