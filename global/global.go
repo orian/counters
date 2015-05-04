@@ -1,16 +1,16 @@
 package global
 
 import (
-	"github.com/orian/counter"
+	"github.com/orian/counters"
 )
 
-var counterBox *counter.CounterBox
+var counterBox *counters.CounterBox
 
 func init() {
-	counterBox = counter.NewCounterBox()
+	counterBox = counters.NewCounterBox()
 }
 
-func GetCounter(name string) counter.Counter {
+func GetCounter(name string) counters.Counter {
 	return counterBox.GetCounter(name)
 }
 
