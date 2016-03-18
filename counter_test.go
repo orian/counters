@@ -1,8 +1,16 @@
 package counters
 
 import (
+	"fmt"
 	"testing"
 )
+
+func TestWriteTo(t *testing.T) {
+	t.Parallel()
+	box := NewCounterBox()
+	box.GetCounter("test").Increment()
+	fmt.Println(box.String())
+}
 
 func TestIncrement(t *testing.T) {
 	t.Parallel()

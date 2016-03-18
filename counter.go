@@ -4,10 +4,13 @@
 package counters
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	"net/http"
 	"sync"
 	"sync/atomic"
+	"text/template"
 )
 
 // MaxMinValue is an interface for minima and maxima counters.
@@ -119,6 +122,46 @@ func (c *CounterBox) GetMax(name string) MaxMinValue {
 	return v
 }
 
+var tmpl = template.Must(template.New("main").Parse(`== Counters ==
+{{- range .Counters}}
+  {{.Name}}: {{.Value}}
+{{- end}}
+== Min values ==
+{{- range .Min}}
+  {{.Name}}: {{.Value}}
+{{- end}}
+== Max values ==
+{{- range .Max}}
+  {{.Name}}: {{.Value}}
+{{- end -}}
+`))
+
+func (c *CounterBox) WriteTo(w io.Writer) {
+	c.m.RLock()
+	defer c.m.RUnlock()
+	data := &struct {
+		Counters []Counter
+		Min      []MaxMinValue
+		Max      []MaxMinValue
+	}{}
+	for _, c := range c.counters {
+		data.Counters = append(data.Counters, c)
+	}
+	for _, c := range c.min {
+		data.Min = append(data.Min, c)
+	}
+	for _, c := range c.max {
+		data.Max = append(data.Max, c)
+	}
+	tmpl.Execute(w, data)
+}
+
+func (c *CounterBox) String() string {
+	buf := &bytes.Buffer{}
+	c.WriteTo(buf)
+	return buf.String()
+}
+
 type counterImpl struct {
 	name  string
 	value int64
@@ -133,7 +176,7 @@ func (c *counterImpl) IncrementBy(num int) {
 }
 
 func (c *counterImpl) Name() string {
-	return c.Name()
+	return c.name
 }
 
 func (c *counterImpl) Value() int64 {
@@ -155,7 +198,7 @@ func (m *maxImpl) Set(v int) {
 }
 
 func (m *maxImpl) Name() string {
-	return m.Name()
+	return m.name
 }
 
 func (m *maxImpl) Value() int64 {
@@ -177,7 +220,7 @@ func (m *minImpl) Set(v int) {
 }
 
 func (m *minImpl) Name() string {
-	return m.Name()
+	return m.name
 }
 
 func (m *minImpl) Value() int64 {

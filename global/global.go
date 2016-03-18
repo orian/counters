@@ -6,6 +6,8 @@ package global
 
 import (
 	"github.com/orian/counters"
+
+	"io"
 	"net/http"
 )
 
@@ -29,4 +31,12 @@ func GetMax(name string) counters.MaxMinValue {
 
 func CreateHttpHandler() http.HandlerFunc {
 	return counterBox.CreateHttpHandler()
+}
+
+func WriteTo(w io.Writer) {
+	counterBox.WriteTo(w)
+}
+
+func String() string {
+	return counterBox.String()
 }
