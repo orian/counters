@@ -1,9 +1,11 @@
 package main
 
 import (
-	cnt "github.com/orian/counters/global"
 	"flag"
+	"fmt"
+	cnt "github.com/orian/counters/global"
 	"net/http"
+	"os"
 	"os/signal"
 	"syscall"
 	"time"
@@ -18,9 +20,9 @@ func main() {
 		go func() {
 			lastInt := time.Now()
 			for sig := range sigs {
-				fmt.Printf("Got signal: %s(%d)", sig, sig)
-				fmt.Printf("I am: %d", os.Getpid())
-				fmt.Printf(cnt.String())
+				fmt.Printf("Got signal: %s(%d)\n", sig, sig)
+				fmt.Printf("I am: %d\n", os.Getpid())
+				fmt.Println(cnt.String())
 				l := time.Now()
 				if sig == syscall.SIGTERM || l.Sub(lastInt).Seconds() < 1. {
 					os.Exit(0)
@@ -29,8 +31,7 @@ func main() {
 			}
 		}()
 	}
-	
-	
+
 	cnt.GetCounter("start").Increment()
 	http.Handle("/status", cnt.CreateHttpHandler())
 	go func() {
