@@ -20,7 +20,7 @@ func main() {
 			for sig := range sigs {
 				fmt.Printf("Got signal: %s(%d)", sig, sig)
 				fmt.Printf("I am: %d", os.Getpid())
-				fmt.Printf(counters.String())
+				fmt.Printf(cnt.String())
 				l := time.Now()
 				if sig == syscall.SIGTERM || l.Sub(lastInt).Seconds() < 1. {
 					os.Exit(0)
