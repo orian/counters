@@ -58,7 +58,6 @@ func NewCounterBox() *CounterBox {
 func (c *CounterBox) CreateHttpHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		c.m.RLock()
-		defer c.m.RUnlock()
 		fmt.Fprintf(w, "Counters %d\n", len(c.counters))
 		for k, v := range c.counters {
 			fmt.Fprintf(w, "%s=%d\n", k, v.Value())
@@ -71,54 +70,55 @@ func (c *CounterBox) CreateHttpHandler() http.HandlerFunc {
 		for k, v := range c.min {
 			fmt.Fprintf(w, "%s=%d\n", k, v.Value())
 		}
+		c.m.RUnlock()
 	}
 }
 
 // GetCounter returns a counter of given name, if doesn't exist than create.
 func (c *CounterBox) GetCounter(name string) Counter {
 	c.m.RLock()
-	if v, ok := c.counters[name]; ok {
-		c.m.RUnlock()
-		return v
-	}
+	v, ok := c.counters[name]
 	c.m.RUnlock()
-	c.m.Lock()
-	defer c.m.Unlock()
-
-	v := &counterImpl{name, 0}
-	c.counters[name] = v
+	if !ok {
+		c.m.Lock()
+		if v, ok = c.counters[name]; !ok {
+			v = &counterImpl{name, 0}
+			c.counters[name] = v
+		}
+		c.m.Unlock()
+	}
 	return v
 }
 
 // GetMin returns a minima counter of given name, if doesn't exist than create.
 func (c *CounterBox) GetMin(name string) MaxMinValue {
 	c.m.RLock()
-	if v, ok := c.min[name]; ok {
-		c.m.RUnlock()
-		return v
-	}
+	v, ok := c.min[name]
 	c.m.RUnlock()
-	c.m.Lock()
-	defer c.m.Unlock()
-
-	v := &minImpl{name, 0}
-	c.min[name] = v
+	if !ok {
+		c.m.Lock()
+		if v, ok = c.min[name]; !ok {
+			v = &minImpl{name, 0}
+			c.min[name] = v
+		}
+		c.m.Unlock()
+	}
 	return v
 }
 
 // GetMax returns a maxima counter of given name, if doesn't exist than create.
 func (c *CounterBox) GetMax(name string) MaxMinValue {
 	c.m.RLock()
-	if v, ok := c.max[name]; ok {
-		c.m.RUnlock()
-		return v
-	}
+	v, ok := c.max[name]
 	c.m.RUnlock()
-	c.m.Lock()
-	defer c.m.Unlock()
-
-	v := &maxImpl{name, 0}
-	c.max[name] = v
+	if !ok {
+		c.m.Lock()
+		if v, ok = c.max[name]; !ok {
+			v = &maxImpl{name, 0}
+			c.max[name] = v
+		}
+		c.m.Unlock()
+	}
 	return v
 }
 
@@ -138,7 +138,6 @@ var tmpl = template.Must(template.New("main").Parse(`== Counters ==
 
 func (c *CounterBox) WriteTo(w io.Writer) {
 	c.m.RLock()
-	defer c.m.RUnlock()
 	data := &struct {
 		Counters []Counter
 		Min      []MaxMinValue
@@ -154,6 +153,7 @@ func (c *CounterBox) WriteTo(w io.Writer) {
 		data.Max = append(data.Max, c)
 	}
 	tmpl.Execute(w, data)
+	c.m.RUnlock()
 }
 
 func (c *CounterBox) String() string {
