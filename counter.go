@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"sort"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"text/template"
@@ -152,6 +154,9 @@ func (c *CounterBox) WriteTo(w io.Writer) {
 	for _, c := range c.max {
 		data.Max = append(data.Max, c)
 	}
+	sort.Slice(data.Counters, func(i, j int) bool { return strings.Compare(data.Counters[i].Name(), data.Counters[j].Name()) < 0 })
+	sort.Slice(data.Min, func(i, j int) bool { return strings.Compare(data.Min[i].Name(), data.Min[j].Name()) < 0 })
+	sort.Slice(data.Max, func(i, j int) bool { return strings.Compare(data.Max[i].Name(), data.Max[j].Name()) < 0 })
 	tmpl.Execute(w, data)
 	c.m.RUnlock()
 }
