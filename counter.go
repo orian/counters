@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"sort"
 	"strings"
@@ -100,7 +101,7 @@ func (c *CounterBox) GetMin(name string) MaxMinValue {
 	if !ok {
 		c.m.Lock()
 		if v, ok = c.min[name]; !ok {
-			v = &minImpl{name, 0}
+			v = &minImpl{name, math.MaxInt64}
 			c.min[name] = v
 		}
 		c.m.Unlock()
