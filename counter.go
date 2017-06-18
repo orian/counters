@@ -81,6 +81,18 @@ func (c *CounterBox) CreateHttpHandler() http.HandlerFunc {
 	}
 }
 
+func (c *CounterBox) Get(name string) Counter {
+	return c.GetCounter(name)
+}
+
+func (c *CounterBox) Min(name string) MaxMinValue {
+	return c.GetMin(name)
+}
+
+func (c *CounterBox) Max(name string) MaxMinValue {
+	return c.GetMax(name)
+}
+
 // GetCounter returns a counter of given name, if doesn't exist than create.
 func (c *CounterBox) GetCounter(name string) Counter {
 	c.m.RLock()
@@ -238,7 +250,7 @@ func (m *minImpl) Value() int64 {
 }
 
 type TrivialLogger interface {
-	Print(string)
+	Print(...interface{})
 }
 
 func InitCountersOnSignal(logger TrivialLogger, box *CounterBox) {

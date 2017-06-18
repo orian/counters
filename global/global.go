@@ -5,38 +5,60 @@
 package global
 
 import (
-	"github.com/orian/counters"
-
 	"io"
 	"net/http"
+	"time"
+
+	"github.com/orian/counters"
+	"github.com/sirupsen/logrus"
 )
 
-var counterBox *counters.CounterBox
+var globalBox *counters.CounterBox
 
 func init() {
-	counterBox = counters.NewCounterBox()
+	globalBox = counters.NewCounterBox()
 }
 
 func GetCounter(name string) counters.Counter {
-	return counterBox.GetCounter(name)
+	return globalBox.GetCounter(name)
+}
+
+func Get(name string) counters.Counter {
+	return globalBox.GetCounter(name)
+}
+
+func Min(name string) counters.MaxMinValue {
+	return globalBox.GetMin(name)
+}
+
+func Max(name string) counters.MaxMinValue {
+	return globalBox.GetMax(name)
 }
 
 func GetMin(name string) counters.MaxMinValue {
-	return counterBox.GetMin(name)
+	return globalBox.GetMin(name)
 }
 
 func GetMax(name string) counters.MaxMinValue {
-	return counterBox.GetMax(name)
+	return globalBox.GetMax(name)
 }
 
 func CreateHttpHandler() http.HandlerFunc {
-	return counterBox.CreateHttpHandler()
+	return globalBox.CreateHttpHandler()
 }
 
 func WriteTo(w io.Writer) {
-	counterBox.WriteTo(w)
+	globalBox.WriteTo(w)
 }
 
 func String() string {
-	return counterBox.String()
+	return globalBox.String()
+}
+
+func LogrusOnSignal() {
+	counters.InitCountersOnSignal(logrus.StandardLogger(), globalBox)
+}
+
+func LogrusCountersEvery(d time.Duration) {
+	counters.LogCountersEvery(logrus.StandardLogger(), globalBox, d)
 }
