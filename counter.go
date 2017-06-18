@@ -8,9 +8,13 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
+	"os/signal"
 	"sync"
 	"sync/atomic"
+	"syscall"
 	"text/template"
+	"time"
 )
 
 // MaxMinValue is an interface for minima and maxima counters.
@@ -225,4 +229,33 @@ func (m *minImpl) Name() string {
 
 func (m *minImpl) Value() int64 {
 	return atomic.LoadInt64(&m.value)
+}
+
+type TrivialLogger interface {
+	Print(string)
+}
+
+func InitCountersOnSignal(logger TrivialLogger, box *CounterBox) {
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+	go func() {
+		lastInt := time.Now()
+		for sig := range sigs {
+			logger.Print(box.String())
+			l := time.Now()
+			if sig == syscall.SIGTERM || l.Sub(lastInt).Seconds() < 1. {
+				os.Exit(0)
+			}
+			lastInt = l
+		}
+	}()
+}
+
+func LogCountersEvery(logger TrivialLogger, box *CounterBox, d time.Duration) {
+	go func() {
+		t := time.NewTicker(d)
+		for range t.C {
+			logger.Print(box.String())
+		}
+	}()
 }
