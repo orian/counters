@@ -7,7 +7,10 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
+	"sort"
+	"strings"
 	"os"
 	"os/signal"
 	"sync"
@@ -81,48 +84,48 @@ func (c *CounterBox) CreateHttpHandler() http.HandlerFunc {
 // GetCounter returns a counter of given name, if doesn't exist than create.
 func (c *CounterBox) GetCounter(name string) Counter {
 	c.m.RLock()
-	if v, ok := c.counters[name]; ok {
-		c.m.RUnlock()
-		return v
-	}
+	v, ok := c.counters[name]
 	c.m.RUnlock()
-	c.m.Lock()
-	defer c.m.Unlock()
-
-	v := &counterImpl{name, 0}
-	c.counters[name] = v
+	if !ok {
+		c.m.Lock()
+		if v, ok = c.counters[name]; !ok {
+			v = &counterImpl{name, 0}
+			c.counters[name] = v
+		}
+		c.m.Unlock()
+	}
 	return v
 }
 
 // GetMin returns a minima counter of given name, if doesn't exist than create.
 func (c *CounterBox) GetMin(name string) MaxMinValue {
 	c.m.RLock()
-	if v, ok := c.min[name]; ok {
-		c.m.RUnlock()
-		return v
-	}
+	v, ok := c.min[name]
 	c.m.RUnlock()
-	c.m.Lock()
-	defer c.m.Unlock()
-
-	v := &minImpl{name, 0}
-	c.min[name] = v
+	if !ok {
+		c.m.Lock()
+		if v, ok = c.min[name]; !ok {
+			v = &minImpl{name, math.MaxInt64}
+			c.min[name] = v
+		}
+		c.m.Unlock()
+	}
 	return v
 }
 
 // GetMax returns a maxima counter of given name, if doesn't exist than create.
 func (c *CounterBox) GetMax(name string) MaxMinValue {
 	c.m.RLock()
-	if v, ok := c.max[name]; ok {
-		c.m.RUnlock()
-		return v
-	}
+	v, ok := c.max[name]
 	c.m.RUnlock()
-	c.m.Lock()
-	defer c.m.Unlock()
-
-	v := &maxImpl{name, 0}
-	c.max[name] = v
+	if !ok {
+		c.m.Lock()
+		if v, ok = c.max[name]; !ok {
+			v = &maxImpl{name, 0}
+			c.max[name] = v
+		}
+		c.m.Unlock()
+	}
 	return v
 }
 
@@ -157,6 +160,9 @@ func (c *CounterBox) WriteTo(w io.Writer) {
 	for _, c := range c.max {
 		data.Max = append(data.Max, c)
 	}
+	sort.Slice(data.Counters, func(i, j int) bool { return strings.Compare(data.Counters[i].Name(), data.Counters[j].Name()) < 0 })
+	sort.Slice(data.Min, func(i, j int) bool { return strings.Compare(data.Min[i].Name(), data.Min[j].Name()) < 0 })
+	sort.Slice(data.Max, func(i, j int) bool { return strings.Compare(data.Max[i].Name(), data.Max[j].Name()) < 0 })
 	tmpl.Execute(w, data)
 }
 
@@ -229,33 +235,4 @@ func (m *minImpl) Name() string {
 
 func (m *minImpl) Value() int64 {
 	return atomic.LoadInt64(&m.value)
-}
-
-type TrivialLogger interface {
-	Print(string)
-}
-
-func InitCountersOnSignal(logger TrivialLogger, box *CounterBox) {
-	sigs := make(chan os.Signal, 1)
-	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
-	go func() {
-		lastInt := time.Now()
-		for sig := range sigs {
-			logger.Print(box.String())
-			l := time.Now()
-			if sig == syscall.SIGTERM || l.Sub(lastInt).Seconds() < 1. {
-				os.Exit(0)
-			}
-			lastInt = l
-		}
-	}()
-}
-
-func LogCountersEvery(logger TrivialLogger, box *CounterBox, d time.Duration) {
-	go func() {
-		t := time.NewTicker(d)
-		for range t.C {
-			logger.Print(box.String())
-		}
-	}()
 }

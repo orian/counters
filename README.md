@@ -32,6 +32,10 @@ One may use subpackage `globals` if want to use a global counters.
 
 The library and all objects are thread safe.
 
+## Print into log or stdout on SIGINT
+
+Please check the `example/example.go` to see how the interrupt can be handled in a nice way.
+
 ## Performance and benchmarks
 The library has two benchmarks. It's blazingly fast. One should cache counters
 which are used often. Every time the counter is requested, it's necessary to
