@@ -35,6 +35,10 @@ func Max(name string) counters.MaxMinValue {
 	return globalBox.GetMax(name)
 }
 
+func WithPrefix(prefix string) counters.Counters {
+	return globalBox.WithPrefix(prefix)
+}
+
 func GetMin(name string) counters.MaxMinValue {
 	return globalBox.GetMin(name)
 }

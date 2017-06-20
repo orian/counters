@@ -60,6 +60,22 @@ func TestMax(t *testing.T) {
 	}
 }
 
+func TestPrefix(t *testing.T) {
+	t.Parallel()
+	box := NewCounterBox()
+	pref := box.WithPrefix("prefix:")
+	cnt := pref.GetCounter("test")
+	cnt.Increment()
+	cnt.IncrementBy(7)
+
+	if v := box.GetCounter("prefix:test"); v.Value() != 8 {
+		t.Errorf("got %d, expected 8", v.Value())
+	}
+	if v := pref.GetCounter("test"); v.Value() != 8 {
+		t.Errorf("got %d, expected 8", v.Value())
+	}
+}
+
 func BenchmarkCounters(b *testing.B) {
 	b.StopTimer()
 	e := make(chan bool)

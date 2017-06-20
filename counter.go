@@ -42,23 +42,39 @@ type Counter interface {
 	Value() int64
 }
 
+type Counters interface {
+	Get(string) Counter
+	Min(string) MaxMinValue
+	Max(string) MaxMinValue
+	WithPrefix(string) Counters
+	GetCounter(string) Counter
+	GetMin(string) MaxMinValue
+	GetMax(string) MaxMinValue
+	WriteTo(w io.Writer)
+	String() string
+}
+
 // CounterBox is a main type, it keeps references to all counters
 // requested from it.
 type CounterBox struct {
-	counters map[string]*counterImpl
-	min      map[string]*minImpl
-	max      map[string]*maxImpl
+	counters map[string]Counter
+	min      map[string]MaxMinValue
+	max      map[string]MaxMinValue
 	m        *sync.RWMutex
 }
 
 // NewCounterBox creates a new object to keep all counters.
 func NewCounterBox() *CounterBox {
 	return &CounterBox{
-		counters: make(map[string]*counterImpl),
-		min:      make(map[string]*minImpl),
-		max:      make(map[string]*maxImpl),
+		counters: make(map[string]Counter),
+		min:      make(map[string]MaxMinValue),
+		max:      make(map[string]MaxMinValue),
 		m:        &sync.RWMutex{},
 	}
+}
+
+func New() Counters {
+	return NewCounterBox()
 }
 
 // CreateHttpHandler creates a simple handler printing values of all counters.
@@ -91,6 +107,85 @@ func (c *CounterBox) Min(name string) MaxMinValue {
 
 func (c *CounterBox) Max(name string) MaxMinValue {
 	return c.GetMax(name)
+}
+
+type prefixed struct {
+	CounterBox
+	base   *CounterBox
+	prefix string
+}
+
+func (c *CounterBox) WithPrefix(name string) Counters {
+	return &prefixed{
+		CounterBox{
+			counters: make(map[string]Counter),
+			min:      make(map[string]MaxMinValue),
+			max:      make(map[string]MaxMinValue),
+			m:        &sync.RWMutex{},
+		},
+		c,
+		name}
+}
+
+func (c *prefixed) GetCounter(name string) Counter {
+	c.m.RLock()
+	v, ok := c.counters[name]
+	c.m.RUnlock()
+	if !ok {
+		c.m.Lock()
+		if v, ok = c.counters[name]; !ok {
+			v = c.base.GetCounter(c.prefix + name)
+			c.counters[name] = v
+		}
+		c.m.Unlock()
+	}
+	return v
+}
+
+// GetMin returns a minima counter of given name, if doesn't exist than create.
+func (c *prefixed) GetMin(name string) MaxMinValue {
+	c.m.RLock()
+	v, ok := c.min[name]
+	c.m.RUnlock()
+	if !ok {
+		c.m.Lock()
+		if v, ok = c.min[name]; !ok {
+			v = c.base.GetMin(c.prefix + name)
+			c.min[name] = v
+		}
+		c.m.Unlock()
+	}
+	return v
+}
+
+// GetMax returns a maxima counter of given name, if doesn't exist than create.
+func (c *prefixed) GetMax(name string) MaxMinValue {
+	c.m.RLock()
+	v, ok := c.max[name]
+	c.m.RUnlock()
+	if !ok {
+		c.m.Lock()
+		if v, ok = c.max[name]; !ok {
+			v = c.base.GetMax(c.prefix + name)
+			c.max[name] = v
+		}
+		c.m.Unlock()
+	}
+	return v
+}
+
+func (c *prefixed) Get(name string) Counter {
+	return c.CounterBox.GetCounter(c.prefix + name)
+}
+
+// GetMin returns a minima counter of given name, if doesn't exist than create.
+func (c *prefixed) Min(name string) MaxMinValue {
+	return c.CounterBox.GetMin(c.prefix + name)
+}
+
+// GetMax returns a maxima counter of given name, if doesn't exist than create.
+func (c *prefixed) Max(name string) MaxMinValue {
+	return c.CounterBox.GetMax(c.prefix + name)
 }
 
 // GetCounter returns a counter of given name, if doesn't exist than create.
