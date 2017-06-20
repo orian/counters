@@ -348,7 +348,7 @@ type TrivialLogger interface {
 	Print(...interface{})
 }
 
-func InitCountersOnSignal(logger TrivialLogger, box *CounterBox) {
+func InitCountersOnSignal(logger TrivialLogger, box Counters) {
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
@@ -364,7 +364,7 @@ func InitCountersOnSignal(logger TrivialLogger, box *CounterBox) {
 	}()
 }
 
-func LogCountersEvery(logger TrivialLogger, box *CounterBox, d time.Duration) {
+func LogCountersEvery(logger TrivialLogger, box Counters, d time.Duration) {
 	go func() {
 		t := time.NewTicker(d)
 		for range t.C {
