@@ -175,17 +175,17 @@ func (c *prefixed) GetMax(name string) MaxMinValue {
 }
 
 func (c *prefixed) Get(name string) Counter {
-	return c.CounterBox.GetCounter(c.prefix + name)
+	return c.GetCounter(name)
 }
 
 // GetMin returns a minima counter of given name, if doesn't exist than create.
 func (c *prefixed) Min(name string) MaxMinValue {
-	return c.CounterBox.GetMin(c.prefix + name)
+	return c.GetMin(name)
 }
 
 // GetMax returns a maxima counter of given name, if doesn't exist than create.
 func (c *prefixed) Max(name string) MaxMinValue {
-	return c.CounterBox.GetMax(c.prefix + name)
+	return c.GetMax(name)
 }
 
 // GetCounter returns a counter of given name, if doesn't exist than create.
