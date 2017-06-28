@@ -51,6 +51,7 @@ type Counters interface {
 	GetMin(string) MaxMinValue
 	GetMax(string) MaxMinValue
 	WriteTo(w io.Writer)
+	Prefix() string
 	String() string
 }
 
@@ -127,6 +128,10 @@ func (c *CounterBox) WithPrefix(name string) Counters {
 		name}
 }
 
+func (c *CounterBox) Prefix() string {
+	return ""
+}
+
 func (c *prefixed) GetCounter(name string) Counter {
 	c.m.RLock()
 	v, ok := c.counters[name]
@@ -186,6 +191,10 @@ func (c *prefixed) Min(name string) MaxMinValue {
 // GetMax returns a maxima counter of given name, if doesn't exist than create.
 func (c *prefixed) Max(name string) MaxMinValue {
 	return c.GetMax(name)
+}
+
+func (c *prefixed) Prefix() string {
+	return c.prefix
 }
 
 // GetCounter returns a counter of given name, if doesn't exist than create.
