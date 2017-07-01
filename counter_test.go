@@ -6,14 +6,12 @@ import (
 )
 
 func TestWriteTo(t *testing.T) {
-	t.Parallel()
 	box := NewCounterBox()
 	box.GetCounter("test").Increment()
 	fmt.Println(box.String())
 }
 
 func TestIncrement(t *testing.T) {
-	t.Parallel()
 	box := NewCounterBox()
 	cnt := box.GetCounter("test")
 	cnt.Increment()
@@ -25,7 +23,6 @@ func TestIncrement(t *testing.T) {
 }
 
 func TestIncrementParallel(t *testing.T) {
-	t.Parallel()
 	box := NewCounterBox()
 	end := make(chan bool, 10)
 	for x := 0; x < 10; x++ {
@@ -61,7 +58,6 @@ func TestMax(t *testing.T) {
 }
 
 func TestPrefix(t *testing.T) {
-	t.Parallel()
 	box := NewCounterBox()
 	pref := box.WithPrefix("prefix:")
 	cnt := pref.GetCounter("test")
