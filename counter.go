@@ -34,8 +34,12 @@ type MaxMinValue interface {
 type Counter interface {
 	// Increment increases counter by one.
 	Increment()
-	// IncrementBy increases counter by given number.
+	// IncrementBy increases counter by a given number.
 	IncrementBy(num int)
+	// Decrement decreases counter by one.
+	Decrement()
+	// DecrementBy decreases counter by a given number.
+	DecrementBy(num int)
 	// Name returns a name of counter.
 	Name() string
 	// Value returns a current value of counter.
@@ -299,6 +303,14 @@ func (c *counterImpl) Increment() {
 
 func (c *counterImpl) IncrementBy(num int) {
 	atomic.AddInt64(&c.value, int64(num))
+}
+
+func (c *counterImpl) Decrement() {
+	atomic.AddInt64(&c.value, -1)
+}
+
+func (c *counterImpl) DecrementBy(num int) {
+	atomic.AddInt64(&c.value, -int64(num))
 }
 
 func (c *counterImpl) Name() string {
