@@ -51,6 +51,10 @@ func CreateHttpHandler() http.HandlerFunc {
 	return globalBox.CreateHttpHandler()
 }
 
+func Default() counters.Counters {
+	return globalBox
+}
+
 func WriteTo(w io.Writer) {
 	globalBox.WriteTo(w)
 }

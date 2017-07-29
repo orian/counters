@@ -40,6 +40,8 @@ type Counter interface {
 	Decrement()
 	// DecrementBy decreases counter by a given number.
 	DecrementBy(num int)
+	// Set sets a specific value.
+	Set(num int)
 	// Name returns a name of counter.
 	Name() string
 	// Value returns a current value of counter.
@@ -311,6 +313,10 @@ func (c *counterImpl) Decrement() {
 
 func (c *counterImpl) DecrementBy(num int) {
 	atomic.AddInt64(&c.value, -int64(num))
+}
+
+func (c *counterImpl) Set(num int) {
+	atomic.StoreInt64(&c.value, int64(num))
 }
 
 func (c *counterImpl) Name() string {
