@@ -3,12 +3,13 @@ package main
 import (
 	"flag"
 	"fmt"
-	cnt "github.com/orian/counters/global"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	cnt "github.com/orian/counters/global"
 )
 
 func main() {

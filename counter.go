@@ -5,7 +5,6 @@ package counters
 
 import (
 	"bytes"
-	"fmt"
 	"io"
 	"math"
 	"net/http"
@@ -86,22 +85,7 @@ func New() Counters {
 
 // CreateHttpHandler creates a simple handler printing values of all counters.
 func (c *CounterBox) CreateHttpHandler() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		c.m.RLock()
-		defer c.m.RUnlock()
-		fmt.Fprintf(w, "Counters %d\n", len(c.counters))
-		for k, v := range c.counters {
-			fmt.Fprintf(w, "%s=%d\n", k, v.Value())
-		}
-		fmt.Fprintf(w, "\nMax values %d\n", len(c.max))
-		for k, v := range c.max {
-			fmt.Fprintf(w, "%s=%d\n", k, v.Value())
-		}
-		fmt.Fprintf(w, "\nMin values %d\n", len(c.min))
-		for k, v := range c.min {
-			fmt.Fprintf(w, "%s=%d\n", k, v.Value())
-		}
-	}
+	return func(w http.ResponseWriter, r *http.Request) { c.WriteTo(w) }
 }
 
 func (c *CounterBox) Get(name string) Counter {

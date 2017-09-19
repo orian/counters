@@ -3,6 +3,10 @@ A GoLang implementation of counters.
 
 It provides an object: `counters.CounterBox` and `Counter`, `Min` and `Max` implementation.
 
+Installation:
+
+    $ go get -u github.com/orian/counters
+
 The example usages:
 
     import "github.com/orian/counters"
@@ -12,7 +16,7 @@ The example usages:
     cb := counters.NewCounterBox()
     c := cb.GetCounter("ex")
     c.Increment()
-    c.IncrementBy(2)
+    c.IncrementBy(6)
     c.Value()  // returns 7
     cb.GetCounter("ex").Value()  // Returns 7
 
@@ -26,7 +30,7 @@ One may use subpackage `globals` if want to use a global counters.
 
     c := global.GetCounter("ex")
     c.Increment()
-    c.IncrementBy(2)
+    c.IncrementBy(6)
     c.Value()  // returns 7
     global.GetCounter("ex").Value()  // Returns 7
 
