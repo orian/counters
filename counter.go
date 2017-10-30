@@ -32,13 +32,13 @@ type MaxMinValue interface {
 // Counter is an interface for integer increase only counter.
 type Counter interface {
 	// Increment increases counter by one.
-	Increment()
+	Increment() int64
 	// IncrementBy increases counter by a given number.
-	IncrementBy(num int)
+	IncrementBy(num int) int64
 	// Decrement decreases counter by one.
-	Decrement()
+	Decrement() int64
 	// DecrementBy decreases counter by a given number.
-	DecrementBy(num int)
+	DecrementBy(num int) int64
 	// Set sets a specific value.
 	Set(num int)
 	// Name returns a name of counter.
@@ -283,20 +283,20 @@ type counterImpl struct {
 	value int64
 }
 
-func (c *counterImpl) Increment() {
-	atomic.AddInt64(&c.value, 1)
+func (c *counterImpl) Increment() int64 {
+	return atomic.AddInt64(&c.value, 1)
 }
 
-func (c *counterImpl) IncrementBy(num int) {
-	atomic.AddInt64(&c.value, int64(num))
+func (c *counterImpl) IncrementBy(num int) int64 {
+	return atomic.AddInt64(&c.value, int64(num))
 }
 
-func (c *counterImpl) Decrement() {
-	atomic.AddInt64(&c.value, -1)
+func (c *counterImpl) Decrement() int64 {
+	return atomic.AddInt64(&c.value, -1)
 }
 
-func (c *counterImpl) DecrementBy(num int) {
-	atomic.AddInt64(&c.value, -int64(num))
+func (c *counterImpl) DecrementBy(num int) int64 {
+	return atomic.AddInt64(&c.value, -int64(num))
 }
 
 func (c *counterImpl) Set(num int) {
