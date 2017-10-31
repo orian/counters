@@ -63,19 +63,17 @@ type Counters interface {
 // CounterBox is a main type, it keeps references to all counters
 // requested from it.
 type CounterBox struct {
-	counters map[string]Counter
-	min      map[string]MaxMinValue
-	max      map[string]MaxMinValue
-	m        *sync.RWMutex
+	counters *sync.Map
+	min      *sync.Map
+	max      *sync.Map
 }
 
 // NewCounterBox creates a new object to keep all counters.
 func NewCounterBox() *CounterBox {
 	return &CounterBox{
-		counters: make(map[string]Counter),
-		min:      make(map[string]MaxMinValue),
-		max:      make(map[string]MaxMinValue),
-		m:        &sync.RWMutex{},
+		counters: &sync.Map{},
+		min:      &sync.Map{},
+		max:      &sync.Map{},
 	}
 }
 
@@ -109,10 +107,9 @@ type prefixed struct {
 func (c *CounterBox) WithPrefix(name string) Counters {
 	return &prefixed{
 		CounterBox{
-			counters: make(map[string]Counter),
-			min:      make(map[string]MaxMinValue),
-			max:      make(map[string]MaxMinValue),
-			m:        &sync.RWMutex{},
+			counters: &sync.Map{},
+			min:      &sync.Map{},
+			max:      &sync.Map{},
 		},
 		c,
 		name}
@@ -123,49 +120,22 @@ func (c *CounterBox) Prefix() string {
 }
 
 func (c *prefixed) GetCounter(name string) Counter {
-	c.m.RLock()
-	v, ok := c.counters[name]
-	c.m.RUnlock()
-	if !ok {
-		c.m.Lock()
-		if v, ok = c.counters[name]; !ok {
-			v = c.base.GetCounter(c.prefix + name)
-			c.counters[name] = v
-		}
-		c.m.Unlock()
-	}
+	value, _ := c.counters.LoadOrStore(name, c.base.GetCounter(c.prefix+name))
+	v, _ := value.(Counter)
 	return v
 }
 
 // GetMin returns a minima counter of given name, if doesn't exist than create.
 func (c *prefixed) GetMin(name string) MaxMinValue {
-	c.m.RLock()
-	v, ok := c.min[name]
-	c.m.RUnlock()
-	if !ok {
-		c.m.Lock()
-		if v, ok = c.min[name]; !ok {
-			v = c.base.GetMin(c.prefix + name)
-			c.min[name] = v
-		}
-		c.m.Unlock()
-	}
+	value, _ := c.min.LoadOrStore(name, c.base.GetMin(c.prefix+name))
+	v, _ := value.(MaxMinValue)
 	return v
 }
 
 // GetMax returns a maxima counter of given name, if doesn't exist than create.
 func (c *prefixed) GetMax(name string) MaxMinValue {
-	c.m.RLock()
-	v, ok := c.max[name]
-	c.m.RUnlock()
-	if !ok {
-		c.m.Lock()
-		if v, ok = c.max[name]; !ok {
-			v = c.base.GetMax(c.prefix + name)
-			c.max[name] = v
-		}
-		c.m.Unlock()
-	}
+	value, _ := c.max.LoadOrStore(name, c.base.GetMax(c.prefix+name))
+	v, _ := value.(MaxMinValue)
 	return v
 }
 
@@ -189,49 +159,22 @@ func (c *prefixed) Prefix() string {
 
 // GetCounter returns a counter of given name, if doesn't exist than create.
 func (c *CounterBox) GetCounter(name string) Counter {
-	c.m.RLock()
-	v, ok := c.counters[name]
-	c.m.RUnlock()
-	if !ok {
-		c.m.Lock()
-		if v, ok = c.counters[name]; !ok {
-			v = &counterImpl{name, 0}
-			c.counters[name] = v
-		}
-		c.m.Unlock()
-	}
+	value, _ := c.counters.LoadOrStore(name, &counterImpl{name, 0})
+	v, _ := value.(Counter)
 	return v
 }
 
 // GetMin returns a minima counter of given name, if doesn't exist than create.
 func (c *CounterBox) GetMin(name string) MaxMinValue {
-	c.m.RLock()
-	v, ok := c.min[name]
-	c.m.RUnlock()
-	if !ok {
-		c.m.Lock()
-		if v, ok = c.min[name]; !ok {
-			v = &minImpl{name, math.MaxInt64}
-			c.min[name] = v
-		}
-		c.m.Unlock()
-	}
+	value, _ := c.min.LoadOrStore(name, &minImpl{name, math.MaxInt64})
+	v, _ := value.(MaxMinValue)
 	return v
 }
 
 // GetMax returns a maxima counter of given name, if doesn't exist than create.
 func (c *CounterBox) GetMax(name string) MaxMinValue {
-	c.m.RLock()
-	v, ok := c.max[name]
-	c.m.RUnlock()
-	if !ok {
-		c.m.Lock()
-		if v, ok = c.max[name]; !ok {
-			v = &maxImpl{name, 0}
-			c.max[name] = v
-		}
-		c.m.Unlock()
-	}
+	value, _ := c.max.LoadOrStore(name, &maxImpl{name, 0})
+	v, _ := value.(MaxMinValue)
 	return v
 }
 
@@ -250,22 +193,29 @@ var tmpl = template.Must(template.New("main").Parse(`== Counters ==
 `))
 
 func (c *CounterBox) WriteTo(w io.Writer) {
-	c.m.RLock()
-	defer c.m.RUnlock()
 	data := &struct {
 		Counters []Counter
 		Min      []MaxMinValue
 		Max      []MaxMinValue
 	}{}
-	for _, c := range c.counters {
-		data.Counters = append(data.Counters, c)
-	}
-	for _, c := range c.min {
-		data.Min = append(data.Min, c)
-	}
-	for _, c := range c.max {
-		data.Max = append(data.Max, c)
-	}
+	c.counters.Range(func(key interface{}, value interface{}) bool {
+		if value, ok := value.(Counter); ok {
+			data.Counters = append(data.Counters, value)
+		}
+		return true
+	})
+	c.min.Range(func(key interface{}, value interface{}) bool {
+		if value, ok := value.(MaxMinValue); ok {
+			data.Min = append(data.Min, value)
+		}
+		return true
+	})
+	c.max.Range(func(key interface{}, value interface{}) bool {
+		if value, ok := value.(MaxMinValue); ok {
+			data.Max = append(data.Max, value)
+		}
+		return true
+	})
 	sort.Slice(data.Counters, func(i, j int) bool { return strings.Compare(data.Counters[i].Name(), data.Counters[j].Name()) < 0 })
 	sort.Slice(data.Min, func(i, j int) bool { return strings.Compare(data.Min[i].Name(), data.Min[j].Name()) < 0 })
 	sort.Slice(data.Max, func(i, j int) bool { return strings.Compare(data.Max[i].Name(), data.Max[j].Name()) < 0 })
